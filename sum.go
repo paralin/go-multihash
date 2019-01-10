@@ -3,12 +3,11 @@ package multihash
 import (
 	"crypto/md5"
 	"crypto/sha1"
+	"crypto/sha256"
 	"crypto/sha512"
 	"errors"
 	"fmt"
 
-	blake2b "github.com/minio/blake2b-simd"
-	sha256 "github.com/minio/sha256-simd"
 	murmur3 "github.com/spaolacci/murmur3"
 	blake2s "golang.org/x/crypto/blake2s"
 	sha3 "golang.org/x/crypto/sha3"
@@ -66,18 +65,6 @@ func sumBlake2s(data []byte, size int) ([]byte, error) {
 	d := blake2s.Sum256(data)
 	return d[:], nil
 }
-func sumBlake2b(data []byte, size int) ([]byte, error) {
-	hasher, err := blake2b.New(&blake2b.Config{Size: uint8(size)})
-	if err != nil {
-		return nil, err
-	}
-
-	if _, err := hasher.Write(data); err != nil {
-		return nil, err
-	}
-
-	return hasher.Sum(nil)[:], nil
-}
 
 func sumID(data []byte, length int) ([]byte, error) {
 	if length >= 0 && length != len(data) {
@@ -111,17 +98,6 @@ func sumDoubleSHA256(data []byte, length int) ([]byte, error) {
 func sumSHA512(data []byte, length int) ([]byte, error) {
 	a := sha512.Sum512(data)
 	return a[0:64], nil
-}
-func sumKeccak256(data []byte, length int) ([]byte, error) {
-	h := sha3.NewLegacyKeccak256()
-	h.Write(data)
-	return h.Sum(nil), nil
-}
-
-func sumKeccak512(data []byte, length int) ([]byte, error) {
-	h := sha3.NewLegacyKeccak512()
-	h.Write(data)
-	return h.Sum(nil), nil
 }
 
 func sumSHA3_512(data []byte, length int) ([]byte, error) {
@@ -177,9 +153,6 @@ func registerNonStdlibHashFuncs() {
 	RegisterHashFunc(SHA2_256, sumSHA256)
 	RegisterHashFunc(DBL_SHA2_256, sumDoubleSHA256)
 
-	RegisterHashFunc(KECCAK_256, sumKeccak256)
-	RegisterHashFunc(KECCAK_512, sumKeccak512)
-
 	RegisterHashFunc(SHA3_224, sumSHA3_224)
 	RegisterHashFunc(SHA3_256, sumSHA3_256)
 	RegisterHashFunc(SHA3_384, sumSHA3_384)
@@ -196,13 +169,6 @@ func registerNonStdlibHashFuncs() {
 		size := int(c - BLAKE2S_MIN + 1)
 		RegisterHashFunc(c, func(buf []byte, _ int) ([]byte, error) {
 			return sumBlake2s(buf, size)
-		})
-	}
-	// BLAKE2B
-	for c := uint64(BLAKE2B_MIN); c <= BLAKE2B_MAX; c++ {
-		size := int(c - BLAKE2B_MIN + 1)
-		RegisterHashFunc(c, func(buf []byte, _ int) ([]byte, error) {
-			return sumBlake2b(buf, size)
 		})
 	}
 }
